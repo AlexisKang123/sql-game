@@ -88,7 +88,7 @@ async function loginWithGitHub(){
   document.getElementById('btn-login').style.display='none';
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'github',
-    options: { redirectTo: window.location.href }
+    options: { redirectTo: 'https://AlexisKang123.github.io/sql-game' }
   });
   if (error) {
     document.getElementById('login-loading').textContent = 'Erro: '+error.message;
