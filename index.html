@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>SQL Builder — Monte a Query</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Nunito:wght@400;600;700;800;900&display=swap');
+
+:root {
+  --bg: #0f1117;
+  --card: #1a1d27;
+  --card2: #21253a;
+  --border: #2e3347;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --green: #10b981;
+  --red: #ef4444;
+  --yellow: #f59e0b;
+  --blue: #3b82f6;
+  --purple: #8b5cf6;
+  --cyan: #06b6d4;
+  --pink: #ec4899;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Nunito', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans)}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100dvh;flex-direction:column}
+.screen.active{display:flex}
+
+/* ══════════ LOGIN SCREEN ══════════ */
+#screen-login{align-items:center;justify-content:center;padding:24px;gap:20px;background:radial-gradient(ellipse at 50% 0%,#1a1d3a 0%,var(--bg) 70%)}
+.login-logo{font-size:56px}
+.login-title{font-size:28px;font-weight:900;letter-spacing:-0.03em;text-align:center}
+.login-sub{font-size:14px;color:var(--muted);text-align:center;max-width:280px;line-height:1.6}
+.btn-github{display:flex;align-items:center;gap:10px;padding:14px 28px;background:var(--card);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-weight:800;font-family:var(--sans);cursor:pointer;transition:all .15s;width:100%;max-width:300px;justify-content:center}
+.btn-github:hover{border-color:var(--purple);background:var(--card2)}
+.btn-github svg{width:22px;height:22px;fill:currentColor}
+.login-loading{font-size:13px;color:var(--muted);font-family:var(--mono)}
+
+/* ══════════ MENU SCREEN ══════════ */
+#screen-menu{overflow-y:auto}
+.menu-header{padding:16px;display:flex;align-items:center;justify-content:space-between;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0}
+.user-info{display:flex;align-items:center;gap:10px}
+.user-avatar{width:36px;height:36px;border-radius:50%;border:2px solid var(--purple)}
+.user-name{font-size:14px;font-weight:800}
+.user-handle{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.btn-icon{background:transparent;border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--muted);font-size:13px;cursor:pointer}
+
+.menu-body{padding:16px;display:flex;flex-direction:column;gap:16px}
+.section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px}
+
+.theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.theme-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.theme-card:active{transform:scale(.97)}
+.theme-card.selected{border-color:var(--purple);background:rgba(139,92,246,.1)}
+.theme-card.selected::after{content:'✓';position:absolute;top:8px;right:10px;font-size:14px;color:var(--purple);font-weight:900}
+.theme-icon{font-size:28px;margin-bottom:6px}
+.theme-name{font-size:13px;font-weight:800;margin-bottom:2px}
+.theme-count{font-size:11px;color:var(--muted);font-family:var(--mono)}
+
+.btn-play{padding:16px;background:linear-gradient(135deg,var(--purple),var(--cyan));color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:900;font-family:var(--sans);cursor:pointer;transition:opacity .15s}
+.btn-play:disabled{opacity:.3}
+.btn-play:active{opacity:.85}
+
+.scores-section{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.scores-tabs{display:flex;overflow-x:auto;border-bottom:1px solid var(--border);scrollbar-width:none}
+.scores-tabs::-webkit-scrollbar{display:none}
+.score-tab{padding:10px 16px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all .15s;background:transparent;border-top:none;border-left:none;border-right:none;font-family:var(--sans)}
+.score-tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+.scores-table{padding:12px}
+.score-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.score-row:last-child{border-bottom:none}
+.score-rank{font-size:13px;font-weight:900;color:var(--muted);width:22px;text-align:center;font-family:var(--mono)}
+.score-rank.gold{color:#fbbf24}
+.score-rank.silver{color:#94a3b8}
+.score-rank.bronze{color:#b45309}
+.score-avatar{width:28px;height:28px;border-radius:50%}
+.score-uname{font-size:13px;font-weight:700;flex:1}
+.score-pts{font-size:13px;font-weight:900;color:var(--yellow);font-family:var(--mono)}
+.score-empty{text-align:center;padding:20px;font-size:13px;color:var(--muted)}
+
+/* ══════════ GAME SCREEN ══════════ */
+#screen-game{max-width:480px;margin:0 auto;width:100%}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0}
+.topbar-left{display:flex;flex-direction:column;gap:2px}
+.topbar-title{font-size:15px;font-weight:900;letter-spacing:-.02em}
+.topbar-sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.lives{display:flex;gap:4px}
+.heart{font-size:18px;transition:transform .2s}
+.heart.lost{opacity:.2;transform:scale(.8)}
+.score-box{text-align:right}
+.score-num{font-size:22px;font-weight:900;color:var(--yellow);font-family:var(--mono);line-height:1}
+.score-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.prog-wrap{height:4px;background:var(--border);flex-shrink:0}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));transition:width .4s ease}
+.game-area{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 14px 8px;display:flex;flex-direction:column;gap:12px}
+.desc-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px}
+.desc-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:6px}
+.desc-text{font-size:14px;font-weight:700;line-height:1.5}
+.desc-hint{font-size:12px;color:var(--muted);margin-top:4px;font-family:var(--mono)}
+.drop-zone-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px}
+.drop-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px}
+.drop-zone{min-height:52px;background:rgba(255,255,255,.02);border:2px dashed var(--border);border-radius:10px;padding:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;transition:border-color .2s,background .2s}
+.drop-zone.drag-over{border-color:var(--cyan);background:rgba(6,182,212,.06)}
+.drop-zone.correct{border-color:var(--green);border-style:solid;background:rgba(16,185,129,.06)}
+.drop-zone.wrong{border-color:var(--red);border-style:solid;background:rgba(239,68,68,.06);animation:shake .4s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.placeholder-text{color:var(--muted);font-size:13px;font-family:var(--mono);padding:4px 6px;pointer-events:none}
+.token-placed{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;font-family:var(--mono);font-size:13px;font-weight:700;cursor:pointer;user-select:none;transition:transform .1s,opacity .1s;touch-action:none}
+.token-placed:active{transform:scale(.95);opacity:.8}
+.token-placed .remove-x{font-size:14px;opacity:.5;line-height:1}
+.bank-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px}
+.bank-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px}
+.token-bank{display:flex;flex-wrap:wrap;gap:7px}
+.token{display:inline-flex;align-items:center;padding:7px 12px;border-radius:9px;font-family:var(--mono);font-size:13px;font-weight:700;cursor:pointer;user-select:none;transition:transform .12s,opacity .12s;touch-action:none;border:none;outline:none}
+.token:active{transform:scale(.93)}
+.token.used{opacity:.2;pointer-events:none}
+.token.dragging{opacity:.4;transform:scale(.9)}
+.tc-blue{background:rgba(59,130,246,.18);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
+.tc-green{background:rgba(16,185,129,.18);color:#6ee7b7;border:1px solid rgba(16,185,129,.3)}
+.tc-yellow{background:rgba(245,158,11,.18);color:#fcd34d;border:1px solid rgba(245,158,11,.3)}
+.tc-purple{background:rgba(139,92,246,.18);color:#c4b5fd;border:1px solid rgba(139,92,246,.3)}
+.tc-pink{background:rgba(236,72,153,.18);color:#f9a8d4;border:1px solid rgba(236,72,153,.3)}
+.tc-cyan{background:rgba(6,182,212,.18);color:#67e8f9;border:1px solid rgba(6,182,212,.3)}
+.tc-red{background:rgba(239,68,68,.18);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+.tc-gray{background:rgba(100,116,139,.18);color:#94a3b8;border:1px solid rgba(100,116,139,.3)}
+.action-row{display:flex;gap:8px;flex-shrink:0;padding:10px 14px 14px;background:var(--bg)}
+.btn-check{flex:1;padding:14px;background:var(--green);color:#000;border:none;border-radius:12px;font-size:15px;font-weight:900;font-family:var(--sans);cursor:pointer;transition:opacity .15s,transform .1s}
+.btn-check:active{transform:scale(.97)}
+.btn-check:disabled{opacity:.3}
+.btn-clear{padding:14px 16px;background:var(--card);color:var(--muted);border:1px solid var(--border);border-radius:12px;font-size:15px;cursor:pointer}
+
+/* ══════════ FEEDBACK OVERLAY ══════════ */
+.feedback-overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.88);z-index:100;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
+.feedback-overlay.show{opacity:1;pointer-events:all}
+.feedback-icon{font-size:64px;margin-bottom:12px}
+.feedback-title{font-size:26px;font-weight:900;margin-bottom:8px}
+.feedback-query{background:#0a0c14;border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-family:var(--mono);font-size:13px;color:#93c5fd;width:100%;max-width:400px;margin-bottom:10px;line-height:1.7;text-align:left;word-break:break-all}
+.feedback-explain{font-size:13px;color:var(--muted);text-align:center;margin-bottom:20px;max-width:360px;line-height:1.6}
+.btn-next{padding:14px 40px;background:var(--purple);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:900;font-family:var(--sans);cursor:pointer}
+
+/* ══════════ END SCREEN ══════════ */
+#screen-end{align-items:center;justify-content:center;gap:14px;padding:24px;background:radial-gradient(ellipse at 50% 0%,#1a1d3a 0%,var(--bg) 70%)}
+.end-icon{font-size:72px}
+.end-title{font-size:28px;font-weight:900;letter-spacing:-.03em}
+.end-score{font-size:48px;font-weight:900;color:var(--yellow);font-family:var(--mono)}
+.end-sub{font-size:14px;color:var(--muted);text-align:center;max-width:300px;line-height:1.6}
+.end-actions{display:flex;flex-direction:column;gap:8px;width:100%;max-width:300px;margin-top:8px}
+.btn-primary{padding:14px;background:linear-gradient(135deg,var(--purple),var(--cyan));color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:900;font-family:var(--sans);cursor:pointer;text-align:center}
+.btn-secondary{padding:14px;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:12px;font-size:15px;font-weight:700;font-family:var(--sans);cursor:pointer;text-align:center}
+
+/* drag ghost */
+#drag-ghost{position:fixed;pointer-events:none;z-index:999;display:none;padding:7px 12px;border-radius:9px;font-family:var(--mono);font-size:13px;font-weight:700;transform:translate(-50%,-50%) scale(1.1);box-shadow:0 8px 24px rgba(0,0,0,.6)}
+</style>
+</head>
+<body>
+
+<div id="drag-ghost"></div>
+
+<!-- ══════════ LOGIN ══════════ -->
+<div id="screen-login" class="screen active">
+  <div class="login-logo">🧩</div>
+  <div class="login-title">SQL Builder</div>
+  <div class="login-sub">Monte queries SQL, suba no placar e desafie seus colegas!</div>
+  <button class="btn-github" id="btn-login">
+    <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+    Entrar com GitHub
+  </button>
+  <div class="login-loading" id="login-loading" style="display:none">Autenticando...</div>
+</div>
+
+<!-- ══════════ MENU ══════════ -->
+<div id="screen-menu" class="screen">
+  <div class="menu-header">
+    <div class="user-info">
+      <img class="user-avatar" id="user-avatar" src="" alt="">
+      <div>
+        <div class="user-name" id="user-name">—</div>
+        <div class="user-handle" id="user-handle">@—</div>
+      </div>
+    </div>
+    <button class="btn-icon" id="btn-logout">Sair</button>
+  </div>
+
+  <div class="menu-body">
+    <div>
+      <div class="section-title">Escolha os temas</div>
+      <div class="theme-grid" id="theme-grid"></div>
+    </div>
+
+    <button class="btn-play" id="btn-play" disabled>Jogar ▶</button>
+
+    <div>
+      <div class="section-title">🏆 Placar por tema</div>
+      <div class="scores-section">
+        <div class="scores-tabs" id="scores-tabs"></div>
+        <div class="scores-table" id="scores-table"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ GAME ══════════ -->
+<div id="screen-game" class="screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">🧩 SQL Builder</div>
+      <div class="topbar-sub" id="level-label">Nível 1</div>
+    </div>
+    <div class="lives" id="lives-wrap">
+      <span class="heart" id="h0">❤️</span>
+      <span class="heart" id="h1">❤️</span>
+      <span class="heart" id="h2">❤️</span>
+    </div>
+    <div class="score-box">
+      <div class="score-num" id="score-display">0</div>
+      <div class="score-label">pontos</div>
+    </div>
+  </div>
+  <div class="prog-wrap"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  <div class="game-area">
+    <div class="desc-card">
+      <div class="desc-label">📋 Monte a query que:</div>
+      <div class="desc-text" id="desc-text">...</div>
+      <div class="desc-hint" id="desc-hint"></div>
+    </div>
+    <div class="drop-zone-wrap">
+      <div class="drop-label">🎯 Sua query</div>
+      <div class="drop-zone" id="drop-zone"></div>
+    </div>
+    <div class="bank-wrap">
+      <div class="bank-label">🔤 Blocos disponíveis</div>
+      <div class="token-bank" id="token-bank"></div>
+    </div>
+  </div>
+  <div class="action-row">
+    <button class="btn-clear" id="btn-clear">🗑️</button>
+    <button class="btn-check" id="btn-check">Verificar ✓</button>
+  </div>
+  <div class="feedback-overlay" id="feedback-overlay">
+    <div class="feedback-icon" id="fb-icon"></div>
+    <div class="feedback-title" id="fb-title"></div>
+    <div class="feedback-query" id="fb-query"></div>
+    <div class="feedback-explain" id="fb-explain"></div>
+    <button class="btn-next" id="btn-next">Próximo →</button>
+  </div>
+</div>
+
+<!-- ══════════ END ══════════ -->
+<div id="screen-end" class="screen">
+  <div class="end-icon" id="end-icon">🏆</div>
+  <div class="end-title" id="end-title">Parabéns!</div>
+  <div class="end-score" id="end-score">0 pts</div>
+  <div class="end-sub" id="end-sub"></div>
+  <div class="end-actions">
+    <button class="btn-primary" id="btn-play-again">Jogar novamente 🔄</button>
+    <button class="btn-secondary" id="btn-back-menu">Ver placar 🏆</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="questions.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
