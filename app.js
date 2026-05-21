@@ -75,31 +75,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadScores();
   });
 
-  // Verifica sessão existente primeiro
-  const { data: { session } } = await sb.auth.getSession();
-  authReady = true;
-
-  if (session?.user) {
-    currentUser = session.user;
-    await showMenu();
-  } else {
-    resetLoginBtn();
-    showScreen('login');
-  }
-
-  // Listener de mudança de estado (só age depois do init)
+  // Listener ANTES do getSession para não perder eventos
   sb.auth.onAuthStateChange(async (event, session) => {
     if (!authReady) return;
     if (event === 'SIGNED_IN' && session?.user) {
       currentUser = session.user;
       await showMenu();
-    } else if (event === 'SIGNED_OUT') {
+    } else if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
       currentUser = null;
       resetState();
       resetLoginBtn();
       showScreen('login');
     }
   });
+
+  // refreshSession valida o token no servidor.
+  // Se o usuário foi deletado do Supabase, retorna erro e limpamos tudo.
+  let validSession = null;
+  try {
+    const { data, error } = await sb.auth.refreshSession();
+    if (!error && data?.session?.user) {
+      validSession = data.session;
+    } else {
+      await forceLocalSignOut();
+    }
+  } catch(e) {
+    await forceLocalSignOut();
+  }
+
+  authReady = true;
+
+  if (validSession?.user) {
+    currentUser = validSession.user;
+    await showMenu();
+  } else {
+    resetLoginBtn();
+    showScreen('login');
+  }
 });
 
 async function loginWithGitHub(){
@@ -121,21 +133,23 @@ async function loginWithGitHub(){
   }
 }
 
+// Limpa toda sessão local (localStorage, cookies do Supabase)
+async function forceLocalSignOut(){
+  try { await sb.auth.signOut({ scope: 'local' }); } catch(e){}
+  // Limpa manualmente as chaves do Supabase no localStorage
+  Object.keys(localStorage).forEach(k => {
+    if (k.startsWith('sb-') || k.includes('supabase')) localStorage.removeItem(k);
+  });
+}
+
 async function logout(){
   const btn = document.getElementById('btn-logout');
-  btn.textContent = 'Saindo...';
-  btn.disabled = true;
-  try {
-    await sb.auth.signOut();
-  } catch(e) {
-    console.error('logout error', e);
-  }
-  // Garante reset mesmo se o listener não disparar
+  if(btn){ btn.textContent = 'Saindo...'; btn.disabled = true; }
+  await forceLocalSignOut();
   currentUser = null;
   resetState();
   resetLoginBtn();
-  btn.textContent = 'Sair';
-  btn.disabled = false;
+  if(btn){ btn.textContent = 'Sair'; btn.disabled = false; }
   showScreen('login');
 }
 
@@ -505,7 +519,23 @@ function updateLives(){
 }
 
 async function endGame(won){
-  for(const key of selectedThemes) await saveScore(key, score);
+  // Apenas questões efetivamente respondidas (índice 0 até levelIdx-1)
+  const answeredLevels = gameLevels.slice(0, levelIdx);
+  const totalAnswered  = answeredLevels.length;
+
+  if (totalAnswered > 0) {
+    // Conta quantas questões de cada tema foram respondidas
+    const themeCounts = {};
+    answeredLevels.forEach(L => {
+      themeCounts[L.theme] = (themeCounts[L.theme] || 0) + 1;
+    });
+    // Salva score proporcional apenas nos temas jogados
+    for (const [themeKey, count] of Object.entries(themeCounts)) {
+      const themeScore = Math.round(score * (count / totalAnswered));
+      await saveScore(themeKey, themeScore);
+    }
+  }
+
   document.getElementById('end-icon').textContent  = won ? '🏆' : '💀';
   document.getElementById('end-title').textContent = won ? 'Parabéns!' : 'Game Over';
   document.getElementById('end-score').textContent = score + ' pts';
